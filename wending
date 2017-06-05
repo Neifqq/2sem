@@ -1,0 +1,286 @@
+using System;
+using System.Collections.Generic;
+
+namespace Wending_Machine
+{
+    
+    class CoffeeMachine
+    {
+        // Составляющие машины.
+        Cups cups;
+        Beans[] beans = new Beans[2];
+        Water water;
+        Milk milk;
+        Sugar sugar;
+        Boiler boiler;
+        Grinder grinder;
+        Dictionary<Recipe, int> recipes = new Dictionary<Recipe, int>();
+        Monetnik monetnik = new Monetnik();
+
+        // Кол-во сырья в машине.
+        public CoffeeMachine(int water, int milk, Dictionary<string, Recipe> recipes, int beans, int cups, int sugar, int coins)
+        {
+            boiler = new Boiler();
+            grinder = new Grinder();
+            this.water = new Water(water);
+            this.milk = new Milk(milk);
+            this.beans[0] = new Beans(beans, BTypes.Arabica);
+            this.beans[1] = new Beans(beans, BTypes.Robusta);
+            this.cups = new Cups(cups);
+            this.sugar = new Sugar(sugar);
+        }
+
+        public int ChooseSugar()
+        {
+            Console.Write("Выберите количество сахара: ");
+            return int.Parse(Console.ReadLine());
+        }
+        public void ShowMaterials()
+        {
+            Console.WriteLine($"Milk - {milk.quantity}");
+            Console.WriteLine($"Water - {water.quantity}");
+            Console.WriteLine($"Sugar - {sugar.quantity}");
+            Console.WriteLine($"Cups - {cups.quantity}");
+            Console.WriteLine($"Beans - {beans[0].quantity}, {beans[1].quantity}");
+        }
+        // Сделать напиток по рецепту.
+        public void MakeDrink(Recipe r)
+        {
+            cups.Substract(1);
+            boiler.BoilWater();
+            water.Substract(r.Water);
+            milk.Substract(r.Milk);
+            sugar.Substract(ChooseSugar());
+
+            switch(r.Type)
+            {
+                case BTypes.Arabica:
+                    beans[0].Substract(r.Beans);
+                    break;
+                case BTypes.Robusta:
+                    beans[1].Substract(r.Beans);
+                    break;
+            }
+            switch(r.GrindState)
+            {
+                case BStates.raw:
+                    grinder.RawGrind();
+                    break;
+                case BStates.medium:
+                    grinder.MediumGrind();
+                    break;
+            }
+        }
+
+        // Добавить напиток в список.
+        public void AddDrink(int price, Recipe recipe)
+        {
+            recipes.Add(recipe, price);
+        }
+
+        public void ShowDrinkList()
+        {
+            foreach(KeyValuePair<Recipe, int> entry in recipes)
+            {
+                Console.WriteLine($"{entry.Key.Name} — {entry.Value}");
+            }
+        }
+
+    }
+
+    public abstract class Material
+    {
+        public int quantity { get; set; }
+        public Material(int quantity)
+        {
+            this.quantity = quantity;
+        }
+
+        public void Add(int i)
+        {
+            quantity += i;
+        }
+
+        public void Substract(int i)
+        {
+            quantity -= i;
+        }
+    }
+
+
+
+    class Cups : Material
+    {
+        public Cups(int quantity) : base(quantity)
+        {
+        }
+    }// Стаканчики(кол-во)
+
+    enum CType { ten, five, two, one };
+    class Coin : Material
+    {
+        CType type;
+        
+        public Coin(int quantity, CType type) : base(quantity)
+        {
+            this.type = type;
+        }
+    }
+    class Recipe
+    {
+        public string Name { get; }
+        public int Water { get; }
+        public int Milk { get; }
+        public int Beans { get; }
+        public BTypes Type { get; }
+        public BStates GrindState { get; }
+        
+        public Recipe(int water, int milk, int beans, BTypes type, BStates state, string name)
+        {
+            this.Water = water;
+            this.Milk = milk;
+            this.Beans = beans;
+            this.Type = type;
+            this.GrindState = state;
+            this.Name = name;
+        }
+    }
+    class Water : Material
+    {
+        public Water(int quantity) : base(quantity) { }
+    }// Вода(кол-во)
+
+    class Milk : Material
+    {
+        public Milk(int quantity) : base(quantity) { }
+    }// Молоко(кол-во)
+
+    class Sugar : Material
+    {
+        public Sugar(int quantity) : base(quantity) { }
+    }// Сахар(кол-во)
+
+    class Beans : Material
+    {
+        public BStates state = BStates.ungrinded;
+        public BTypes type;
+        public Beans(int quantity, BTypes type) : base(quantity)
+        {
+            this.type = type;
+        }
+    }// Зёрна(тип, состояние, кол-во)
+    enum BTypes { Robusta, Arabica };
+    enum BStates { ungrinded, raw, medium, small };
+
+    class Boiler
+    {
+        public void BoilWater()
+        {
+
+        }
+    }
+
+    class Grinder
+    {
+        int beans;
+        public void RawGrind()
+        {
+            Clear();
+        }
+        public void MediumGrind()
+        {
+            Clear();
+        }
+        public void SmallGrind()
+        {
+            Clear();
+        }
+        public void Add(int i)
+        {
+            beans += i;
+        }
+        public void Clear()
+        {
+            beans = 0;
+        }
+    }
+
+    class Monetnik
+    {
+        Coin[] coins = new Coin[4]; // 1, 2, 5, 10
+
+        public bool Sdacha(int input, int price)
+        {
+            int sdacha = input - price;
+            while(sdacha > 10)
+            {
+                if (coins[3].quantity > 0)
+                {
+                    coins[3].Substract(1);
+                    sdacha -= 10;
+                }
+                else break;
+            }
+            while (sdacha > 5)
+            {
+                if (coins[2].quantity > 0)
+                {
+                    coins[3].Substract(1);
+                    sdacha -= 10;
+                }
+                else break;
+            }
+            while (sdacha > 2)
+            {
+                if (coins[1].quantity > 0)
+                {
+                    coins[3].Substract(1);
+                    sdacha -= 10;
+                }
+                else break;
+            }
+            while (sdacha > 1)
+            {
+                if (coins[0].quantity > 0)
+                {
+                    coins[0].Substract(1);
+                    sdacha -= 1;
+                }
+                else break;
+            }
+            if (sdacha == 0) return true;
+            else return false;
+        }
+
+    }
+
+    class CreditCard
+    {
+        int money;
+
+        public CreditCard(int i)
+        {
+            money = i;
+        }
+        public void ShowBalance()
+        {
+            Console.WriteLine(money);
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            CoffeeMachine m = new CoffeeMachine(100, 100, null, 100, 100, 100, 100);
+            Recipe r = new Recipe(50, 20, 10, BTypes.Arabica, BStates.raw, "TestCoffee");
+            m.ShowDrinkList();
+            m.ShowMaterials();
+            m.AddDrink(10, r);
+            m.MakeDrink(r);
+            m.ShowDrinkList();
+            m.ShowMaterials();
+            Console.ReadKey();
+        }
+    }
+}
